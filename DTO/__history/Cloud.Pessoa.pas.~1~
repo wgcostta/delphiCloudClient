@@ -1,0 +1,28 @@
+unit Cloud.Pessoa;
+
+interface
+
+uses
+  Vcl.Graphics;
+
+type
+  TCloudPessoa = class
+  private
+    Fid: integer;
+    FNome: string;
+    FIdentidade: string;
+    FCPF: string;
+    FTelefone: string;
+    FEmail: string;
+  public
+    property ID: integer read Fid write Fid;
+    property Nome: string read FNome write FNome;
+    property Identidade: string read FIdentidade write FIdentidade;
+    property CPF: string read FCPF write FCPF;
+    property Telefone: string read FTelefone write FTelefone;
+    property Email : string read FEmail write FEmail;
+  end;
+
+implementation
+
+end.

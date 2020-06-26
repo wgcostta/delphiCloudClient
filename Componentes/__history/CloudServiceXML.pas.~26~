@@ -1,0 +1,172 @@
+unit CloudServiceXML;
+
+interface
+
+uses
+  System.Classes,  Xml.XMLDoc, XMLIntf, System.SysUtils,
+  Forms, System.StrUtils, System.DateUtils,
+  System.Math,
+  Cloud.Dto.Pessoa;
+
+
+type
+   TCloudServiceXML = class(TComponent)
+   private
+    FendXml: IXMLNode;
+    Fxml: TXMLDocument;
+    FloteXML: TXMLDocument;
+    FpessoaXML: IXMLNode;
+    FendPessoasXML: IXMLNode;
+    procedure NovoXML;
+    procedure GeraRaiz;
+    procedure GeraInfNFe(pessoa: TCloudPessoa);
+    procedure Setxml(const Value: TXMLDocument);
+    procedure SetloteXML(const Value: TXMLDocument);
+   public
+    sArquivo : string;
+    function GeraXML(pessoa: TCloudPessoa): string;
+    function SalvaXML: String;
+    function GeraLote(iId: Integer; pessoa: TCloudPessoa): TXMLDocument;
+    procedure SalvaLoteDisco(iModelo: Integer);
+    constructor Create(AOwner: TComponent);
+      property endXml: IXMLNode read FendXml write FendXml;
+      property xml: TXMLDocument read Fxml write Setxml;
+      property loteXML: TXMLDocument read FloteXML write SetloteXML;
+      property pessoaXML: IXMLNode read FpessoaXML write FpessoaXML;
+      property endPessoasXML: IXMLNode read FendPessoasXML write FendPessoasXML;
+   published
+
+
+
+end;
+
+implementation
+
+uses
+  Cloud.Dto.Pessoa.Endereco;
+
+{ TCloudServiceXML }
+
+function TCloudServiceXML.GeraXML(pessoa: TCloudPessoa): string;
+var
+   i: Integer;
+begin
+   Result := '';
+   NovoXML;
+   GeraRaiz;
+   GeraInfNFe(pessoa);
+   Result := GeraLote(pessoa.ID, pessoa).XML.Text;
+end;
+
+procedure TCloudServiceXML.NovoXML;
+begin
+   xml :=  TXMLDocument.Create(Self);;
+   xml.Active  := True;
+end;
+
+procedure TCloudServiceXML.SalvaLoteDisco(iModelo: Integer);
+begin
+   sNomeArquivo := ExtractFilePath(ParamStr(0)) + iModelo + '-env-pessoa.xml';
+   loteXML.Active := True;
+
+   try
+      loteXML.SaveToFile(sNomeArquivo);
+   except
+
+   end;
+end;
+
+function TCloudServiceXML.SalvaXML: String;
+var
+   sNomeArquivo, sChaveAcesso: String;
+begin
+   sChaveAcesso := StringReplace(endPessoasXML.Attributes['Id'],'NFe','',[]);
+   sNomeArquivo := ExtractFilePath(ParamStr(0)) + 'Pessoas\' + sChaveAcesso + '-nfe.xml';
+
+   xml.Options := [doNodeAutoIndent];
+   xml.Active := True;
+   xml.SaveToFile(sNomeArquivo);
+
+   Result := sNomeArquivo;
+end;
+
+procedure TCloudServiceXML.SetloteXML(const Value: TXMLDocument);
+begin
+  FloteXML := Value;
+end;
+
+procedure TCloudServiceXML.Setxml(const Value: TXMLDocument);
+begin
+  Fxml := Value;
+end;
+
+constructor TCloudServiceXML.Create(AOwner: TComponent);
+begin
+
+end;
+
+procedure TCloudServiceXML.GeraInfNFe(pessoa: TCloudPessoa);
+begin
+   endPessoasXML.Attributes['Id'] := 'Pessoa' + pessoa.ID.ToString;
+   endPessoasXML.Attributes['versao'] := '1.0';
+end;
+
+function TCloudServiceXML.GeraLote(iId: Integer;
+  pessoa: TCloudPessoa): TXMLDocument;
+var
+  sVersao: String;
+  iContador : Integer;
+begin
+   Result := nil;
+
+   loteXML := TXMLDocument.Create(Self);
+   loteXML.Active := True;
+   loteXML.Version  := '1.0';
+   loteXML.Encoding := 'UTF-8';
+
+   pessoaXML := loteXML.AddChild('enviNFe', 'http://www.portalfiscal.inf.br/nfe');
+
+   pessoaXML.AddChild('idLote').NodeValue     := FormatFloat('0000000', iId);
+   pessoaXML.AddChild('nome').NodeValue       := pessoa.Nome;
+   pessoaXML.AddChild('identidade').NodeValue := pessoa.identidade;
+   pessoaXML.AddChild('cpf').NodeValue        := pessoa.CPF;
+   pessoaXML.AddChild('telefone').NodeValue   := pessoa.Telefone;
+   pessoaXML.AddChild('email').NodeValue      := pessoa.Email;
+
+   if (pessoa.Endereco <> nil) and (pessoa.Endereco.Count > 0) then
+   begin
+      for iContador := 0 to Pred(pessoa.endereco.Count) do
+      begin
+         endPessoasXML := pessoaXML.AddChild('enderecos');
+
+         endXML := endPessoasXML.AddChild('endXML');
+
+         endXML.AddChild('idPessoa').NodeValue  := pessoa.Endereco[iContador].id;
+         endXML.AddChild('endereco').NodeValue  := pessoa.Endereco[iContador].endereco;
+         endXML.AddChild('Cep').NodeValue       := pessoa.Endereco[iContador].Cep;
+         endXML.AddChild('Numero').NodeValue    := pessoa.Endereco[iContador].Numero;
+         endXML.AddChild('Complemento').NodeValue   := pessoa.Endereco[iContador].Complemento;
+         endXML.AddChild('Bairro').NodeValue   := pessoa.Endereco[iContador].Bairro;
+         endXML.AddChild('Cidade').NodeValue   := pessoa.Endereco[iContador].Cidade;
+         endXML.AddChild('Estado').NodeValue   := pessoa.Endereco[iContador].Estado;
+         endXML.AddChild('Pais').NodeValue      := pessoa.Endereco[iContador].Pais;
+      end;
+   end;
+
+   xml.Active := True;
+   pessoaXML.ChildNodes.Add(xml.DocumentElement);
+
+   SalvaLoteDisco(pessoa.id);
+
+   Result := loteXML;
+end;
+
+procedure TCloudServiceXML.GeraRaiz;
+var
+   raiz: IXMLNode;
+begin
+   raiz := xml.AddChild('NFe','http://www.portalfiscal.inf.br/nfe');
+   endPessoasXML := raiz.AddChild('infNFe');
+end;
+
+end.

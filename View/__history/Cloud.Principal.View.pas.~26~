@@ -1,0 +1,287 @@
+unit Cloud.Principal.View;
+
+interface
+
+uses
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  System.Generics.Collections,
+  Vcl.StdCtrls,
+  Vcl.ExtCtrls,
+  Vcl.ComCtrls,
+  DBClient,
+  Data.DB, Vcl.Grids,
+  Vcl.DBGrids,
+  Cloud.Controller,
+  Cloud.Dto.Cliente,
+  Cloud.Dto.Tabela;
+
+type
+  TCloudPrincipalView = class(TForm)
+    CampoID: TEdit;
+    CampoNome: TEdit;
+    LabelCodigo: TLabel;
+    LabelNome: TLabel;
+    LabelSenioridade: TLabel;
+    LabelDataNascimento: TLabel;
+    LabelCorUniforme: TLabel;
+    DBGrid1: TDBGrid;
+    DS_PESSOAS: TDataSource;
+    CDS_PESSOAS: TClientDataSet;
+    CDS_PESSOASNome: TStringField;
+    dbEnderencos: TDBGrid;
+    btnAddPessoa: TButton;
+    CampoIdentidade: TEdit;
+    CampoCPF: TEdit;
+    CampoTelefone: TEdit;
+    CampoEmail: TEdit;
+    btnDelPessoa: TButton;
+    btnAtualizarPessoa: TButton;
+    btnCadEndereco: TButton;
+    btnEnvioEmail: TButton;
+    edtEmailDestino: TEdit;
+    pnlTitulo: TPanel;
+    lblTitulo: TLabel;
+    Panel1: TPanel;
+    DS_ENDERECOS: TDataSource;
+    CDS_ENDERECOS: TClientDataSet;
+    CEP: TStringField;
+    pnlEndereco: TPanel;
+    lblBairro: TLabel;
+    lblCEP: TLabel;
+    lblCidade: TLabel;
+    lblComplemento: TLabel;
+    lblEstado: TLabel;
+    lblLogradouro: TLabel;
+    lblNumero: TLabel;
+    lblPais: TLabel;
+    CampoBairro: TEdit;
+    CampoCidade: TEdit;
+    CampoComplemento: TEdit;
+    CampoEstado: TEdit;
+    CampoLogradouro: TEdit;
+    CampoNumero: TEdit;
+    CampoPais: TEdit;
+    CampoCep: TEdit;
+    Label1: TLabel;
+    Panel2: TPanel;
+    Label2: TLabel;
+    Label3: TLabel;
+    btnAtualizarEndereco: TButton;
+    procedure FormCreate(Sender: TObject);
+    procedure CDS_PESSOASAfterScroll(DataSet: TDataSet);
+    procedure FormDestroy(Sender: TObject);
+    procedure btnAddPessoaClick(Sender: TObject);
+    procedure btnDelPessoaClick(Sender: TObject);
+    procedure btnAtualizarPessoaClick(Sender: TObject);
+    procedure btnCadEnderecoClick(Sender: TObject);
+    procedure btnEnvioEmailClick(Sender: TObject);
+    procedure CDS_ENDERECOSAfterScroll(DataSet: TDataSet);
+
+    procedure btnAtualizarEnderecoClick(Sender: TObject);
+
+  private
+    FListaPessoas: TObjectList<TCloudCliente>;
+    procedure PreencherCampos<T : TCloudTabela>(objeto: TCloudTabela);
+
+  end;
+
+var
+  CloudPrincipalView: TCloudPrincipalView;
+
+implementation
+
+uses
+  System.RTTI, System.TypInfo, Cloud.Dto.Pessoa.Endereco, CloudBuscaCEP;
+
+{$R *.dfm}
+
+procedure TCloudPrincipalView.btnAddPessoaClick(Sender: TObject);
+begin
+   if TCloudController.New.AddPessoa(FListaPessoas) then
+   begin
+      TCloudController.PreencherDataSet<TCloudCliente>(CDS_PESSOAS,FListaPessoas);
+   end;
+end;
+
+procedure TCloudPrincipalView.btnDelPessoaClick(Sender: TObject);
+begin
+   if FListaPessoas[Pred(CDS_PESSOAS.RecNo)].ID > 0 then
+   begin
+      if TCloudController.New.DeletePessoa(FListaPessoas,Pred(CDS_PESSOAS.RecNo)) then
+      begin
+         TCloudController.PreencherDataSet<TCloudCliente>(CDS_PESSOAS,FListaPessoas);
+      end;
+
+   end;
+end;
+
+procedure TCloudPrincipalView.btnEnvioEmailClick(Sender: TObject);
+begin
+   if edtEmailDestino.Text = '' then
+   begin
+      ShowMessage('Por favor insira um e-mail válido');
+      Exit;
+   end;
+
+   if FListaPessoas[Pred(CDS_PESSOAS.RecNo)].ID > 0 then
+   begin
+      ShowMessage(TCloudController.
+                              New.
+                              EnviarEmail(FListaPessoas[Pred(CDS_PESSOAS.RecNo)],
+                                        edtEmailDestino.Text));
+
+   end;
+end;
+
+procedure TCloudPrincipalView.btnAtualizarEnderecoClick(Sender: TObject);
+var
+   iIdRegistro,iIdPessoa : Integer;
+   temp : TCloudEndereco;
+begin
+   iIdRegistro := Pred(CDS_ENDERECOS.RecNo);
+   iIdPessoa   := Pred(CDS_PESSOAS.RecNo);
+   if (FListaPessoas[iIdPessoa].Endereco <> nil) and (FListaPessoas[iIdPessoa].Endereco <> nil) then
+   begin
+      temp := FListaPessoas[iIdPessoa].Endereco[iIdRegistro];
+      if TCloudController.New.AtualizarEndereco(temp,iIdPessoa,iIdRegistro) then
+      begin
+         FListaPessoas[iIdPessoa].Endereco[iIdRegistro] := temp;
+         CDS_PESSOASAfterScroll(CDS_PESSOAS);
+
+      end;
+   end;
+end;
+
+procedure TCloudPrincipalView.btnAtualizarPessoaClick(Sender: TObject);
+begin
+   if TCloudController.New.UpdatePessoa(FListaPessoas,FListaPessoas[Pred(CDS_PESSOAS.RecNo)].ID) then
+   begin
+      TCloudController.PreencherDataSet<TCloudCliente>(CDS_PESSOAS,FListaPessoas);
+   end;
+end;
+
+procedure TCloudPrincipalView.btnCadEnderecoClick(Sender: TObject);
+var
+   iIdRegistro : Integer;
+
+begin
+   iIdRegistro := Pred(CDS_PESSOAS.RecNo);
+   if TCloudController.New.CadastrarEndereco(FListaPessoas,iIdRegistro) then
+   begin
+      TCloudController.PreencherDataSet<TCloudEndereco>(CDS_ENDERECOS,FListaPessoas[iIdRegistro].Endereco,'CEP');
+   end;
+end;
+
+procedure TCloudPrincipalView.CDS_ENDERECOSAfterScroll(DataSet: TDataSet);
+begin
+   PreencherCampos<TCloudEndereco>(FListaPessoas[Pred(CDS_PESSOAS.RecNo)].Endereco[Pred(CDS_ENDERECOS.RecNo)]);
+end;
+
+procedure TCloudPrincipalView.CDS_PESSOASAfterScroll(DataSet: TDataSet);
+begin
+  // Chama o método para preencher os controles visuais da tela,
+  // informando o objeto posicionado no índice "RecNo - 1" do ClientDataSet
+  PreencherCampos<TCloudCliente>(FListaPessoas[Pred(CDS_PESSOAS.RecNo)]);
+
+  CDS_ENDERECOS.Close;
+  CDS_ENDERECOS.CreateDataSet;
+  if (FListaPessoas[Pred(CDS_PESSOAS.RecNo)].Endereco <> nil) and (FListaPessoas[Pred(CDS_PESSOAS.RecNo)].Endereco.Count > 0) then
+  begin
+      TCloudController.PreencherDataSet<TCloudEndereco>(CDS_ENDERECOS,FListaPessoas[Pred(CDS_PESSOAS.RecNo)].Endereco,'CEP');
+      PreencherCampos<TCloudEndereco>(FListaPessoas[Pred(CDS_PESSOAS.RecNo)].Endereco[Pred(CDS_ENDERECOS.RecNo)]);
+  end
+  else
+  begin
+      CampoBairro.Text := '';
+      CampoCidade.Text := '';
+      CampoComplemento.Text := '';
+      CampoEstado.Text := '';
+      CampoLogradouro.Text := '';
+      CampoNumero.Text := '';
+      CampoPais.Text := '';
+      CampoCep.Text := '';
+  end;
+end;
+
+procedure TCloudPrincipalView.FormCreate(Sender: TObject);
+begin
+   TCloudController.New.CriarCliente(FListaPessoas);
+
+  // Popula o ClientDataSet com o objeto
+   TCloudController.PreencherDataSet<TCloudCliente>(CDS_PESSOAS,FListaPessoas);
+end;
+
+procedure TCloudPrincipalView.FormDestroy(Sender: TObject);
+begin
+  FListaPessoas.Free;
+end;
+
+procedure TCloudPrincipalView.PreencherCampos<T>(objeto: TCloudTabela);
+var
+  Contexto: TRttiContext;
+  TipoRtti: TRttiType;
+  Propriedade: TRttiProperty;
+  Valor: variant;
+  Componente: TComponent;
+  AuxValue: TValue;
+begin
+  // Cria o contexto do RTTI
+  Contexto := TRttiContext.Create;
+
+  // Obtém as informações de RTTI da classe Genérica
+   AuxValue := GetTypeData(PTypeInfo(TypeInfo(T)))^.ClassType.Create;
+   TipoRtti := Contexto.GetType(AuxValue.AsObject.ClassInfo);
+  try
+    // Faz uma iteração nas propriedades do objeto
+    for Propriedade in TipoRtti.GetProperties do
+    begin
+      // Obtém o valor da propriedade
+      Valor := Propriedade.GetValue(objeto).AsVariant;
+
+      // Encontra o componente relacionado, como, por exemplo, "CampoNome"
+      Componente := FindComponent('Campo' + Propriedade.Name);
+
+      // Testa se o componente é da classe "TEdit" para acessar a propriedade "Text"
+      if Componente is TEdit then
+        (Componente as TEdit).Text := Valor;
+
+      // Testa se o componente é da classe "TComboBox" para acessar a propriedade "ItemIndex"
+      if Componente is TComboBox then
+        (Componente as TComboBox).ItemIndex := (Componente as TComboBox).Items.IndexOf(Valor);
+
+      // Testa se o componente é da classe "TRadioGroup" para acessar a propriedade "ItemIndex"
+      if Componente is TRadioGroup then
+        (Componente as TRadioGroup).ItemIndex := (Componente as TRadioGroup).Items.IndexOf(Valor);
+
+//      // Testa se o componente é da classe "TCheckBox" para acessar a propriedade "Checked"
+      if Componente is TCheckBox then
+        (Componente as TCheckBox).Checked := Valor;
+
+      // Testa se o componente é da classe "TTrackBar" para acessar a propriedade "Position"
+      if Componente is TTrackBar then
+        (Componente as TTrackBar).Position := Valor;
+
+      // Testa se o componente é da classe "TDateTimePicker" para acessar a propriedade "Date"
+      if Componente is TDateTimePicker then
+        (Componente as TDateTimePicker).Date := Valor;
+
+
+     // Testa se o componente é da classe "TShape" para acessar a propriedade "Brush.Color"
+      if Componente is TShape then
+        (Componente as TShape).Brush.Color := Valor;
+    end;
+  finally
+    Contexto.Free;
+  end;
+end;
+
+
+end.

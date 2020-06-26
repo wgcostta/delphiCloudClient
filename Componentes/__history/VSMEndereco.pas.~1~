@@ -1,0 +1,212 @@
+unit VSMEndereco;
+
+interface
+
+uses
+  InstantPersistence, InstantTypes, VSMCidade;
+
+type
+  TVSMEndereco = class(TInstantObject)
+  {IOMETADATA Id: Integer;
+    Endereco: String(50);
+    Bairro: String(30);
+    Cidade: Reference(TVSMCidade);
+    CEP: String(9);
+    Tipo: String(15);
+    Complemento: String(50);
+    Numero: String(10); }
+    _Bairro: TInstantString;
+    _CEP: TInstantString;
+    _Cidade: TInstantReference;
+    _Complemento: TInstantString;
+    _Id: TInstantInteger;
+    _Endereco: TInstantString;
+    _Numero: TInstantString;
+    _Tipo: TInstantString;
+  private
+    function GetBairro: string;
+    function GetCEP: string;
+    function GetCidade: TVSMCidade;
+    function GetComplemento: string;
+    function GetId: Integer;
+    function GetEndereco: string;
+    function GetNumero: string;
+    function GetTipo: string;
+    procedure SetBairro(const Value: string);
+    procedure SetCEP(const Value: string);
+    procedure SetCidade(Value: TVSMCidade);
+    procedure SetComplemento(const Value: string);
+    procedure SetId(Value: Integer);
+    procedure SetEndereco(const Value: string);
+    procedure SetNumero(const Value: string);
+    procedure SetTipo(const Value: string);
+  protected
+    procedure AfterCreate; override;
+  public
+    function RetornaEnderecoGoogleMaps: string;
+  published
+    property Bairro: string read GetBairro write SetBairro;
+    property CEP: string read GetCEP write SetCEP;
+    property Cidade: TVSMCidade read GetCidade write SetCidade;
+    property Complemento: string read GetComplemento write SetComplemento;
+    property Id: Integer read GetId write SetId;
+    property Endereco: string read GetEndereco write SetEndereco;
+    property Numero: string read GetNumero write SetNumero;
+    property Tipo: string read GetTipo write SetTipo;
+  end;
+
+  function MontaEndereco(Id: Integer; Logradouro, Numero, Bairro, Cidade, CEP, UF,
+      CodIBGE, CodIBGEUF, Complemento: string): TVSMEndereco;
+  function RetornaEnderecoVazio: TVSMEndereco;
+
+implementation
+
+uses
+  InstantMetadata, UN_VSMUTILS, SysUtils;
+
+{ TVSMEndereco }
+
+procedure TVSMEndereco.AfterCreate;
+begin
+  inherited;
+  _Bairro.Value := '';
+  _CEP.Value := '';
+  _Complemento.Value := '';
+  _Id.Value := 0;
+  _Endereco.Value := '';
+  _Numero.Value := '';
+  _Tipo.Value := '';
+  _Cidade.Value := TVSMCidade.Create();
+end;
+
+function TVSMEndereco.GetBairro: string;
+begin
+  Result := _Bairro.Value;
+end;
+
+function TVSMEndereco.GetCEP: string;
+begin
+  Result := _CEP.Value;
+end;
+
+function TVSMEndereco.GetCidade: TVSMCidade;
+begin
+  Result := _Cidade.Value as TVSMCidade;
+end;
+
+function TVSMEndereco.GetComplemento: string;
+begin
+  Result := _Complemento.Value;
+end;
+
+function TVSMEndereco.GetId: Integer;
+begin
+  Result := _Id.Value;
+end;
+
+function TVSMEndereco.GetEndereco: string;
+begin
+  Result := _Endereco.Value;
+end;
+
+function TVSMEndereco.GetNumero: string;
+begin
+  Result := _Numero.Value;
+end;
+
+function TVSMEndereco.GetTipo: string;
+begin
+  Result := _Tipo.Value;
+end;
+
+function MontaEndereco(Id: Integer; Logradouro, Numero, Bairro, Cidade, CEP, UF,
+    CodIBGE, CodIBGEUF, Complemento: string): TVSMEndereco;
+var
+   endereco: TVSMEndereco;
+begin
+   endereco             := TVSMEndereco.Create;
+   endereco.Id          := Id;
+   endereco.Endereco    := Logradouro;
+   endereco.Numero      := Numero;
+   endereco.Bairro      := Bairro;
+   endereco.CEP         := CEP;
+   endereco.Complemento := Complemento;
+
+   if Cidade <> '' then
+   begin
+      endereco.Cidade.Id        := -1;
+      endereco.Cidade.Nome      := Cidade;
+      endereco.Cidade.UF        := UF;
+      endereco.Cidade.CodIBGE   := CodIBGE;
+      endereco.Cidade.CodIBGEUF := CodIBGEUF;
+   end;
+
+   Result := endereco;
+end;
+
+function RetornaEnderecoVazio: TVSMEndereco;
+begin
+   Result := MontaEndereco(0, '', '', '', '', '', '', '', '', '');
+end;
+
+function TVSMEndereco.RetornaEnderecoGoogleMaps: string;
+var
+  sResult: String;
+begin
+  sResult := '';
+  AppendString(sResult, StringReplace(Endereco, ',', ' ', [rfReplaceAll]));
+  AppendString(sResult, StringReplace(Cidade.Nome, ',', ' ', [rfReplaceAll]));
+  AppendString(sResult, StringReplace(Cidade.UF, ',', ' ', [rfReplaceAll]));
+  Result := sResult;
+end;
+
+procedure TVSMEndereco.SetBairro(const Value: string);
+begin
+  _Bairro.Value := Value;;
+end;
+
+procedure TVSMEndereco.SetCEP(const Value: string);
+begin
+  _CEP.Value := Value;;
+end;
+
+procedure TVSMEndereco.SetCidade(Value: TVSMCidade);
+begin
+  _Cidade.Value := Value;;
+end;
+
+procedure TVSMEndereco.SetComplemento(const Value: string);
+begin
+  _Complemento.Value := Value;;
+end;
+
+procedure TVSMEndereco.SetId(Value: Integer);
+begin
+  _Id.Value := Value;;
+end;
+
+procedure TVSMEndereco.SetEndereco(const Value: string);
+begin
+  _Endereco.Value := Value;;
+end;
+
+procedure TVSMEndereco.SetNumero(const Value: string);
+begin
+  _Numero.Value := Value;;
+end;
+
+procedure TVSMEndereco.SetTipo(const Value: string);
+begin
+  _Tipo.Value := Value;;
+end;
+
+initialization
+  InstantRegisterClasses([
+    TVSMEndereco
+  ]);
+
+
+//finalization
+//   InstantUnregisterClasses([TVSMEndereco]);
+
+end.

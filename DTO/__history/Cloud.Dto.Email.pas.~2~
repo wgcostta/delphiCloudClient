@@ -1,0 +1,21 @@
+unit Cloud.Dto.Email;
+
+interface
+  CONST
+  sUserEmail = 'chamados.vsm@gmail.com';
+  sPassWord  = 'vsm00000';
+  sHost      = 'smtp.gmail.com' ;
+  sPorta     = '465';
+//   _bTLS           := True;
+//   _bAuth          := True;
+  sAssunto   = 'Cadastro de Pessoas';
+  sFileCorpo = '';
+  sDestinatarios = '';
+  sCC            = 'wg.o.costa@gmail.com';
+  sCCo           = '';
+  sTextoCorpo    = '';
+  sAnexo         = '';
+
+implementation
+
+end.

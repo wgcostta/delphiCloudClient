@@ -1,0 +1,7 @@
+unit Cloud.Dto.Email;
+
+interface
+
+implementation
+
+end.
